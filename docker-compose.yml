@@ -2,7 +2,7 @@ version : "3.7"
 
 
 services:
-# Computation
+  # Computation
   jupyter:
     container_name: "hashtags_jupyter"
     restart: "always"
@@ -27,12 +27,88 @@ services:
     env_file:
       - ./config/postgres.env
       - ./config/shared_database.env
+      - ./config/airflow_database.env
     volumes:
       - postgres_volume:/var/lib/postgresql/data/
       - ./services/postgres/:/docker-entrypoint-initdb.d/
     ports:
       - 5432:5432
 
+  # Scheduling
+  webserver:
+      container_name: "hashtags_airflow_webserver"
+      restart: "always"
+      image: puckel/docker-airflow:1.10.6
+      restart: always
+      depends_on:
+          - postgres
+          - redis
+      env_file:
+        - ./config/airflow_container.env
+        - ./config/shared_database.env
+      volumes:
+        - ./services/airflow/requirements.txt:/requirements.txt
+        - ./shared/dags/:/usr/local/airflow/dags
+        - ./shared/dags/:/usr/local/airflow/notebooks #for papermill usage
+
+      ports:
+          - "8080:8080"
+      command: webserver
+      healthcheck:
+          test: ["CMD-SHELL", "[ -f /usr/local/airflow/airflow-webserver.pid ]"]
+          interval: 30s
+          timeout: 30s
+          retries: 3
+
+  flower:
+      container_name: "hashtags_airflow_flower"
+      restart: "always"
+      image: puckel/docker-airflow:1.10.6
+      restart: always
+      depends_on:
+          - redis
+      environment:
+          - EXECUTOR=Celery
+          - REDIS_PASSWORD=TCPYkerxvKQu
+      ports:
+          - 5555:5555
+      command: flower
+
+  scheduler:
+      container_name: "hashtags_airflow_scheduler"
+      restart: "always"
+      image: puckel/docker-airflow:1.10.6
+      restart: always
+      depends_on:
+          - webserver
+      env_file:
+        - ./config/airflow_container.env
+
+      volumes:
+        - ./services/airflow/requirements.txt:/requirements.txt
+        - ./shared/dags/:/usr/local/airflow/dags
+        - ./shared/dags/:/usr/local/airflow/notebooks #for papermill usage
+      command: scheduler
+
+  worker:
+      container_name: "hashtags_airflow_worker"
+      image: puckel/docker-airflow:1.10.6
+      restart: always
+      depends_on:
+          - scheduler
+      env_file:
+        - ./config/airflow_container.env
+
+      volumes:
+        - ./services/airflow/requirements.txt:/requirements.txt
+        - ./shared/dags/:/usr/local/airflow/dags
+        - ./shared/dags/:/usr/local/airflow/notebooks #for papermill usage
+      command: worker
+
+  redis:
+      container_name: "hashtags_redis"
+      image: 'redis:5.0.7'
+      command: redis-server --requirepass TCPYkerxvKQu
 
 volumes:
   postgres_volume:
