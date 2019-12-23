@@ -11,6 +11,7 @@ services:
       - ./config/jupyter.env
       - ./config/shared_database.env
     volumes:
+      - ./shared/dags/:/home/jovyan/work/dags
       - ./shared/notebooks/:/home/jovyan/work/notebooks
       - ./shared/requirements.txt:/home/jovyan/work/requirements.txt
 
@@ -39,6 +40,12 @@ services:
       container_name: "hashtags_airflow_webserver"
       restart: "always"
       image: puckel/docker-airflow:1.10.6
+      build:
+          context: https://github.com/puckel/docker-airflow.git#1.10.6
+          dockerfile: Dockerfile
+          args:
+              AIRFLOW_DEPS: "papermill"
+              PYTHON_DEPS: "papermill==1.1.0"
       restart: always
       depends_on:
           - postgres
@@ -67,6 +74,8 @@ services:
       restart: always
       depends_on:
           - redis
+      env_file:
+        - ./config/airflow_container.env
       environment:
           - EXECUTOR=Celery
           - REDIS_PASSWORD=TCPYkerxvKQu
