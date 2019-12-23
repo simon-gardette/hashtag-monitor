@@ -12,6 +12,8 @@ services:
       - ./config/shared_database.env
     volumes:
       - ./shared/notebooks/:/home/jovyan/work/notebooks
+      - ./shared/requirements.txt:/home/jovyan/work/requirements.txt
+
     ports:
       - 8888:8888
     # All entrypoints are stored in respective services
