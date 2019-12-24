@@ -1,11 +1,10 @@
 # VERSION 1.10.6
-# AUTHOR: Matthieu "Puckel_" Roisil
-# DESCRIPTION: Basic Airflow container
-# BUILD: docker build --rm -t puckel/docker-airflow .
-# SOURCE: https://github.com/puckel/docker-airflow
+# AUTHOR: Simon Gardette
+# DESCRIPTION: Basic Airflow container Heavily Based on the "_Puckel" One (pretty much a ripoff except for requirements and little stuff)
+
 
 FROM python:3.7-slim-stretch
-LABEL maintainer="Puckel_"
+LABEL maintainer="Simon Gardette"
 
 # Never prompts the user for choices on installation/configuration of packages
 ENV DEBIAN_FRONTEND noninteractive
@@ -57,7 +56,9 @@ RUN set -ex \
     && pip install ndg-httpsclient \
     && pip install pyasn1 \
     && pip install psycopg2-binary \
+    #installing a few specific dependencies for the project
     && pip install crypto celery postgres hive mysql ssh jupyter\
+    #installing airflow directly from source cause stable not doing what I want (papermill)
     && pip install git+https://github.com/apache/airflow.git@v1-10-test \
     && pip install 'redis==3.2' \
     && if [ -n "${PYTHON_DEPS}" ]; then pip install ${PYTHON_DEPS}; fi \
@@ -75,8 +76,10 @@ RUN set -ex \
 COPY script/entrypoint.sh /entrypoint.sh
 COPY config/airflow.cfg ${AIRFLOW_USER_HOME}/airflow.cfg
 
+# Installing requirements for jupyter
+# (should probably do a symlink with jupyter to gain time)
 COPY ./requirements.txt /tmp/
-RUN pip install --requirement /tmp/requirements.txt 
+RUN pip install --requirement /tmp/requirements.txt
 
 
 RUN chown -R airflow: ${AIRFLOW_USER_HOME}
