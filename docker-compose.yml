@@ -39,13 +39,13 @@ services:
   webserver:
       container_name: "hashtags_airflow_webserver"
       restart: "always"
-      image: puckel/docker-airflow:1.10.6
+      image: puckel/docker-airflow:1.10.6-1
       build:
-          context: https://github.com/puckel/docker-airflow.git#1.10.6
+          context: https://github.com/puckel/docker-airflow.git#1.10.6-1
           dockerfile: Dockerfile
           args:
               AIRFLOW_DEPS: "papermill"
-              PYTHON_DEPS: "papermill==1.1.0"
+              PYTHON_DEPS: "papermill==1.2.1"
       restart: always
       depends_on:
           - postgres
@@ -70,7 +70,7 @@ services:
   flower:
       container_name: "hashtags_airflow_flower"
       restart: "always"
-      image: puckel/docker-airflow:1.10.6
+      image: puckel/docker-airflow:1.10.6-1
       restart: always
       depends_on:
           - redis
@@ -86,7 +86,7 @@ services:
   scheduler:
       container_name: "hashtags_airflow_scheduler"
       restart: "always"
-      image: puckel/docker-airflow:1.10.6
+      image: puckel/docker-airflow:1.10.6-1
       restart: always
       depends_on:
           - webserver
@@ -101,7 +101,7 @@ services:
 
   worker:
       container_name: "hashtags_airflow_worker"
-      image: puckel/docker-airflow:1.10.6
+      image: puckel/docker-airflow:1.10.6-1
       restart: always
       depends_on:
           - scheduler

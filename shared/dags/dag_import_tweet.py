@@ -1,32 +1,50 @@
-# -*- coding: utf-8 -*-
-"""
-This DAG will use Papermill to run the notebook "twitter", based on the execution date
-it will create an output notebook "out-<date>". All fields, including the keys in the parameters, are
-templated.
-"""
+import os
+import papermill as pm
+from datetime import datetime, timedelta
+from airflow import DAG
+from airflow.operators.python_operator import PythonOperator
 
-from datetime import timedelta
+def execute_python_notebook_task(**context):
+    notebook_path = context['notebook_path']
+    out_path = context['out_path']
+    out_dir = os.path.dirname(out_path)
+    statement_parameters = context['statement_parameters'] if 'statement_parameters' in context else None
 
-import airflow
-from airflow.models import DAG
-from airflow.operators.papermill_operator import PapermillOperator
+    if not os.path.exists(out_dir):
+        os.makedirs(out_dir)
+
+    if callable(statement_parameters):
+        statement_parameters = statement_parameters(context)
+
+    pm.execute_notebook(
+        notebook_path,
+        out_path,
+        parameters=statement_parameters
+    )
+
+seven_days_ago = datetime.combine(
+    datetime.today() - timedelta(7),
+    datetime.min.time()
+)
 
 default_args = {
     'owner': 'airflow',
-    'start_date': airflow.utils.dates.days_ago(2)
+    'start_date': seven_days_ago,
+    'provide_context': True,
 }
 
-with DAG(
-    dag_id='example_papermill_operator',
-    default_args=default_args,
-    schedule_interval='0 0 * * *',
-    dagrun_timeout=timedelta(minutes=60)
-) as dag:
-    # [START howto_operator_papermill]
-    run_this = PapermillOperator(
-        task_id="run_example_notebook",
-        input_nb="/usr/local/airflow/notebooks/twitter.ipynb",
-        output_nb="/usr/local/airflow/notebooks/out-twitter-{{ execution_date }}.ipynb",
-        parameters={"msgs": "Ran from Airflow at {{ execution_date }}!"}
+dag_name = 'runnin_notebooks_yo'
+schedule_interval = '@daily'
+
+with DAG(dag_name, default_args=default_args, schedule_interval=schedule_interval) as dag:
+    run_some_notebook_task = PythonOperator(
+        task_id='run_some_notebook_task',
+        python_callable=execute_python_notebook_task,
+        op_kwargs={
+            'notebook_path': '/usr/local/airflow/notebooks/twitter.ipynb',
+            'out_path': '/usr/local/airflow/notebooks/out-twitter-{{ execution_date }}.ipynb',
+            'statement_parameters': {
+                'parameter_1': 'some_value'
+            }
+        }
     )
-    # [END howto_operator_papermill]
