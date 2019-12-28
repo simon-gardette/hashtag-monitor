@@ -1,6 +1,4 @@
-#! /usr/bin/env bash
-
-# Let the DB start
-sleep 10;
-# Run migrations
-alembic upgrade head
+#migrate database
+flask db init
+flask db migrate
+flask db upgrade
