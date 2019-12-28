@@ -2,6 +2,19 @@ version : "3.7"
 
 
 services:
+
+  # visualisation
+  webapp:
+    build: ./services/webapp
+    env_file:
+      - ./config/webapp.env
+    volumes:
+        - .services/webapp/code:/code
+    depends_on:
+        - redis
+    ports:
+        - 8000:80 # when on production run on port 80
+
   # Computation
   jupyter:
     container_name: "hashtags_jupyter"
