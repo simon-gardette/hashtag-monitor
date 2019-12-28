@@ -14,7 +14,7 @@ from werkzeug.exceptions import HTTPException, NotFound, abort
 
 # App modules
 from app        import app, lm, db, bc
-from app.models import User
+from app.models import User, Brand, Keyword, RawGram, RawTweet
 from app.forms  import LoginForm, RegisterForm
 
 # provide login manager with load_user callback

@@ -84,3 +84,46 @@ class Keyword(db.Model):
         db.session.commit( )
 
         return self
+
+
+class RawTweet(db.Model):
+
+    id        = db.Column(db.Integer, primary_key=True)
+    rawtweet = db.Column(db.JSON)
+
+    def __init__(self, rawtweet):
+        self.rawtweet   = rawtweet
+
+    def __repr__(self):
+        return str(self.id) + ' - ' + 'rawtweet'
+
+    def save(self):
+
+        # inject self into db session
+        db.session.add ( self )
+
+        # commit change and save the object
+        db.session.commit( )
+
+        return self
+
+class RawGram(db.Model):
+
+    id       = db.Column(db.Integer, primary_key=True)
+    rawgram = db.Column(db.JSON)
+
+    def __init__(self, raw_tweet):
+        self.rawgram   = rawgram
+
+    def __repr__(self):
+        return str(self.id) + ' - ' + 'rawgram'
+
+    def save(self):
+
+        # inject self into db session
+        db.session.add ( self )
+
+        # commit change and save the object
+        db.session.commit( )
+
+        return self
