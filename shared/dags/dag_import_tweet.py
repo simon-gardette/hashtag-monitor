@@ -22,29 +22,32 @@ def execute_python_notebook_task(**context):
         parameters=statement_parameters
     )
 
-seven_days_ago = datetime.combine(
-    datetime.today() - timedelta(7),
-    datetime.min.time()
-)
+# seven_days_ago = datetime.combine(
+#     datetime.today() - timedelta(7),
+#     datetime.min.time()
+# )
+
+today = datetime.today()
 
 default_args = {
     'owner': 'airflow',
-    'start_date': seven_days_ago,
+    'start_date': today,
     'provide_context': True,
 }
 
-dag_name = 'runnin_notebooks_yo'
+dag_name = 'initialise_raw_tweet_collect'
 schedule_interval = '@daily'
+hashtag = "minecraft"
 
 with DAG(dag_name, default_args=default_args, schedule_interval=schedule_interval) as dag:
     run_some_notebook_task = PythonOperator(
         task_id='run_some_notebook_task',
         python_callable=execute_python_notebook_task,
         op_kwargs={
-            'notebook_path': '/usr/local/airflow/notebooks/twitter.ipynb',
-            'out_path': '/usr/local/airflow/notebooks/out-twitter-{{ execution_date }}.ipynb',
+            'notebook_path': '/usr/local/airflow/notebooks/raw_twitter.ipynb',
+            'out_path': '/usr/local/airflow/notebooks/out-twitter-{{ hashtag }}.ipynb',
             'statement_parameters': {
-                'parameter_1': 'some_value'
+                'hashtag': hashtag
             }
         }
     )
