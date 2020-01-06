@@ -1,5 +1,12 @@
 FROM jupyter/scipy-notebook
 
+USER root
+
+RUN apt-get update && apt-get install -y apt-transport-https
+RUN apt-get update && apt-get install -y apt-utils
+RUN apt-get update -y && apt-get install -y wget curl unzip libgconf-2-4
+RUN apt-get update -y && apt-get install -y chromium xvfb python3 python3-pip
+
 USER jovyan
 
 
@@ -10,8 +17,6 @@ RUN pip install --requirement /tmp/requirements.txt && \
 
 RUN jupyter labextension install @jupyterlab/celltags
 
-RUN apt-get update -y && apt-get install -y wget curl unzip libgconf-2-4
-RUN apt-get update -y && apt-get install -y chromium xvfb python3 python3-pip
 RUN wget -O /tmp/chromedriver.zip http://chromedriver.storage.googleapis.com/`curl -sS chromedriver.storage.googleapis.com/LATEST_RELEASE`/chromedriver_linux64.zip
 RUN unzip /tmp/chromedriver.zip chromedriver -d /usr/local/bin/
 
