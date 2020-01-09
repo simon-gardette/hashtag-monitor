@@ -1,42 +1,37 @@
-#!/usr/bin/env python
+# -*- encoding: utf-8 -*-
+
 import eventlet
 eventlet.monkey_patch(socket=True)
-from flask import Flask, render_template, session, request, jsonify, url_for
+from flask import Flask
 from flask_socketio import SocketIO, emit, join_room, leave_room, \
     close_room, rooms, disconnect
-
+from importlib import import_module
+from flask_login import LoginManager
 from celery import Celery
-
-#from app.blueprints.bptest2 import bptest2
-#from app.blueprints.bptest2 import tasks
+from logging import basicConfig, DEBUG, getLogger, StreamHandler
 
 socketio = SocketIO()
 
 
-CELERY_TASK_LIST = [
-    'app.blueprints.bptest1.tasks',
-    'app.blueprints.bptest2.tasks',
-]
-
-
 def register_extensions(app):
     from app.extensions import db
-    from app.extensions import login
+    from app.extensions import login_manager
     from app.extensions import migrate
 
     db.init_app(app)
-    login.init_app(app)
-    login.login_view = 'main.login'
+    login_manager.init_app(app)
+    login_manager.login_view = 'main.login'
+
     migrate.init_app(app, db)
 
 
 def register_blueprints(app):
-    # from app.webapp import server_bp
-    # app.register_blueprint(server_bp)
-    # from app.blueprints.bptest2 import bptest2
-    # app.register_blueprint(bptest2)
-    from app.blueprints.bptest1 import bptest1
-    app.register_blueprint(bptest1)
+    # server_bp
+    # bptest2
+    # bptest1
+    for module_name in ('base', 'home', 'interface'):
+        module = import_module('app.blueprints.{}.routes'.format(module_name))
+        app.register_blueprint(module.blueprint)
 
 
 def create_celery_app(app=None):
@@ -49,7 +44,13 @@ def create_celery_app(app=None):
     """
     app = app or create_app()
 
-    celery = Celery(app.import_name, broker='redis://:TCPYkerxvKQu@redis:6379/0',
+    CELERY_TASK_LIST = [
+        'app.blueprints.bptest1.tasks',
+        'app.blueprints.bptest2.tasks',
+    ]
+
+    celery = Celery(app.import_name,
+                    broker='redis://:TCPYkerxvKQu@redis:6379/0',
                     include=CELERY_TASK_LIST)
     celery.conf.update(app.config)
     TaskBase = celery.Task
@@ -64,32 +65,51 @@ def create_celery_app(app=None):
     celery.Task = ContextTask
     return celery
 
+
+def configure_database(app):
+
+    @app.before_first_request
+    def initialize_database():
+        db.create_all()
+
+    @app.teardown_request
+    def shutdown_session(exception=None):
+        db.session.remove()
+
+
+def configure_logs(app):
+    # soft logging
+    try:
+        basicConfig(filename='error.log', level=DEBUG)
+        logger = getLogger()
+        logger.addHandler(StreamHandler())
+    except:
+        pass
+
+
 def create_app(main=True, debug=False):
     """Create an application."""
-    app = Flask(__name__)
-    #app.config.from_object(config[config_name])
-    #config[config_name].init_app(app)
-    #app.debug = debug
+    app = Flask(__name__, static_folder='blueprints/base/static')
+    # Need to make taht a var to accept debug etc.
+    app.config.from_object('app.config.ProductionConfig')
 
     async_mode = None
 
-    #register_dashapps(app)
     register_extensions(app)
+
+    # configure_database(app)
+
     register_blueprints(app)
 
-    app.config['SECRET_KEY'] = 'secret!'
+    #register_dashapps(app) #Dashapp are a separated core to render infos
 
-    # for socketio
-    #socketio = SocketIO(app, logger=True, engineio_logger=True, message_queue=app.config['CELERY_BROKER_URL'])
+    configure_logs(app)
 
-    #socketio = SocketIO()
-    #   socketio = SocketIO(None, logger=True, engineio_logger=True, message_queue=app.config['CELERY_BROKER_URL'], async_mode='threading')
-    # # Initialize Celery
+    # fo unit tests (will probably not be implemented in 1st version)
+    # if selenium:
+    #     app.config['LOGIN_DISABLED'] = True
 
-
-    #socketio.init_app(app, logger=True, engineio_logger=True, async_mode=async_mode, message_queue='redis://:devpassword@redis:6379/0')
-
-    #######PUT THIS AFTER REGISTERING THE BLUEPRINT
+    # This always need to be after BluePrint
     if main:
         # Initialize socketio server and attach it to the message queue, so
         # that everything works even when there are multiple servers or
@@ -105,11 +125,6 @@ def create_app(main=True, debug=False):
         socketio.init_app(None, logger=True, engineio_logger=True,
                           message_queue='redis://:TCPYkerxvKQu@redis:6379/0',
                           async_mode='threading')
-
-    @app.route('/')
-    def index():
-        return render_template('index.html', async_mode=socketio.async_mode)
-
 
     return app
 

@@ -1,3 +1,5 @@
+# -*- encoding: utf-8 -*-
+
 from . import bptest1
 from flask_socketio import SocketIO
 from app import create_celery_app, socketio

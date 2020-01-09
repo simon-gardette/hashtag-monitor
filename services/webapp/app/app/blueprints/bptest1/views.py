@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 from . import bptest1
 from .tasks import create_stream, send_complete_message
 from app import socketio

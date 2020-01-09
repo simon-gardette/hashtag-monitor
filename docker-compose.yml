@@ -8,8 +8,8 @@ services:
     build: ./services/webapp
     env_file:
       - ./config/webapp.env
-    volumes:
-        - .services/webapp/code:/code
+    # volumes:
+    #     - .services/webapp/app:/app
     depends_on:
         - redis
     ports:
