@@ -45,7 +45,7 @@ services:
       - postgres_volume:/var/lib/postgresql/data/
       - ./services/postgres/:/docker-entrypoint-initdb.d/
     ports:
-      - 5432:5432
+      - 5433:5432
 
   # Scheduling
   webserver:

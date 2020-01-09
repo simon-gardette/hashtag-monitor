@@ -1,29 +1,39 @@
+# -*- encoding: utf-8 -*-
+"""
+Creating the user Class to handle register login etc... Not my code. Should work
+
+License: MIT
+Copyright (c) 2019 - present AppSeed.us
+"""
+
+from app         import db
 from flask_login import UserMixin
-from werkzeug.security import check_password_hash
-from werkzeug.security import generate_password_hash
-
-from app.extensions import db
-from app.extensions import login
-
-
-@login.user_loader
-def load_user(id):
-    return User.query.get(int(id))
-
 
 class User(UserMixin, db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), index=True, unique=True)
-    password_hash = db.Column(db.String(128))
 
-    def set_password(self, password):
-        self.password_hash = generate_password_hash(password)
+    id       = db.Column(db.Integer,     primary_key=True)
+    user     = db.Column(db.String(64),  unique = True)
+    email    = db.Column(db.String(120), unique = True)
+    password = db.Column(db.String(500))
 
-    def check_password(self, password):
-        return check_password_hash(self.password_hash, password)
+    def __init__(self, user, email, password):
+        self.user       = user
+        self.password   = password
+        self.email      = email
 
     def __repr__(self):
-        return '<User {}>'.format(self.username)
+        return str(self.id) + ' - ' + str(self.user)
+
+    def save(self):
+
+        # inject self into db session
+        db.session.add ( self )
+
+        # commit change and save the object
+        db.session.commit( )
+
+        return self
+
 
 """
 The brand will be the main entity. It will be composed of multiple
@@ -75,12 +85,6 @@ class Keyword(db.Model):
 
         return self
 
-"""
-First we store the raw datas. So we create a JSON storage in the db
-It's useful because it will limit the number of request and ensur if we do
-evolutions later based on new datas in the api for exemple or new usages we will
-already have collected the maximum amount of infos
-"""
 
 class RawTweet(db.Model):
 
