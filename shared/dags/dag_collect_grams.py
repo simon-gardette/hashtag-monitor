@@ -1,6 +1,7 @@
 from __future__ import print_function
 from builtins import range
 from airflow.operators.python_operator import PythonOperator
+from airflow.operators.dummy_operator import DummyOperator
 from airflow.models import DAG
 from datetime import datetime, timedelta
 import time
@@ -14,6 +15,10 @@ import IPython.display
 import os
 from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.ext.automap import automap_base
+from sqlalchemy.orm import Session
+
+import logging
 
 
 log = logging.getLogger(__name__)
@@ -70,9 +75,14 @@ def collect_grams(ds, **kwargs):
 
     # Initiate a scraper object and call one of the methods.
     instagram = InstagramScraper(url, keyword_id=keyword_id, brand_id=brand_id)
-    posts = instagram.raw_response()
-    IPython.display.JSON(posts)
+    results = instagram.hashtag_posts()    
     return results
+
+join = DummyOperator(
+    task_id='join',
+    trigger_rule='one_success',
+    dag=dag,
+)
 
 keywords = get_keywords()
 
@@ -80,7 +90,7 @@ for keyword in keywords:
     run_this = PythonOperator(
         task_id='stream_tweets_'+ keyword.keyword_name,
         provide_context=True,
-        python_callable=stream_tweets,
+        python_callable=collect_grams,
         execution_timeout=None,
         op_kwargs={'keyword_id': keyword.id,
                    'keyword_name': keyword.keyword_name,

@@ -2,6 +2,7 @@ from __future__ import print_function
 from builtins import range
 from airflow.operators.python_operator import PythonOperator
 from airflow.operators.dummy_operator import DummyOperator
+from airflow.operators.latest_only_operator import LatestOnlyOperator
 from airflow.models import DAG
 from datetime import datetime, timedelta
 import time
@@ -16,10 +17,10 @@ import sys
 import sqlalchemy
 from sqlalchemy import create_engine, MetaData, Table
 from sqlalchemy import exc
+from sqlalchemy.dialects.postgresql import insert
 
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
-from sqlalchemy import create_engine
 
 from pprint import pprint
 
@@ -39,7 +40,7 @@ args = {
 
 dag = DAG(dag_id='stream_twitter_data',
           default_args=args,
-          schedule_interval=None
+          schedule_interval='*/5 * * * *'
 )
 
 def get_keywords():
@@ -87,9 +88,10 @@ def stream_tweets(ds, **kwargs):
     while True:  # a while loop to achieve what I want to do
         log.info("something happened")
         results = tweepy_stream.filter(track=[keyword_name])
-        time.sleep(3600)
-
+        time.sleep(1)
     return results
+
+latest_only = LatestOnlyOperator(task_id='latest_only', dag=dag)
 
 join = DummyOperator(
     task_id='join',
@@ -100,7 +102,7 @@ join = DummyOperator(
 keywords = get_keywords()
 
 for keyword in keywords:
-    run_this = PythonOperator(
+    task = PythonOperator(
         task_id='stream_tweets_'+ keyword.keyword_name,
         provide_context=True,
         python_callable=stream_tweets,
@@ -109,9 +111,7 @@ for keyword in keywords:
                    'keyword_name': keyword.keyword_name,
                    'brand_id': keyword.brand_id},
         dag=dag)
-
-#
-# run_this >> join
+    latest_only >> task
 
 
 
