@@ -3,3 +3,4 @@ SQLAlchemy
 InstagramApi
 tqdm==4.29.1
 papermill==1.2.1
+beautifulsoup4==4.8.2 

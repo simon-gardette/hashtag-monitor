@@ -87,8 +87,6 @@ def stream_tweets(ds, **kwargs):
     while True:  # a while loop to achieve what I want to do
         log.info("something happened")
         results = tweepy_stream.filter(track=[keyword_name])
-        log.info(results)
-        print(results)
         time.sleep(3600)
 
     return results
@@ -131,7 +129,6 @@ class TwitterListener(tweepy.StreamListener):
             return False
 
     def on_status(self, status):
-        print(status.text)
         return True
 
     def on_data(self, data):
@@ -142,7 +139,6 @@ class TwitterListener(tweepy.StreamListener):
         try:
             # parse as json
             raw_data = json.loads(data)
-            print(raw_data)
             #insert data just collected into MySQL my_database
             self.populate_table(raw_data)
 
@@ -169,7 +165,8 @@ class TwitterListener(tweepy.StreamListener):
 
         # Begin transaction
         trans = conn.begin()
-
+        type(i)
+        log.info(type(raw_data))
         ins = raw_tweet.insert().values(brand_id=self.brand_id,
                                     	keyword_id=self.keyword_id,
                                     	platform_id=1,

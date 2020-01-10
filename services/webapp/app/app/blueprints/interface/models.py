@@ -63,7 +63,7 @@ class Raws(db.Model):
     keyword = db.relationship('Keywords')
     platform_id = db.Column(db.Integer, db.ForeignKey('platforms.id'), nullable=False)
     platform = db.relationship('Platforms')
-    api_id = db.Column(db.String(255), nullable=False)
+    api_id = db.Column(db.String(255), nullable=False, unique=True)
     raw_data =  db.Column(db.JSON, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.now)
 
