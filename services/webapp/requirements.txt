@@ -40,3 +40,6 @@ celery==4.4.*
 tweepy==3.8.*
 
 pandas_datareader
+
+
+pattern == 3.6

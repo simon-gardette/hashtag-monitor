@@ -26,9 +26,6 @@ def register_extensions(app):
 
 
 def register_blueprints(app):
-    # server_bp
-    # bptest2
-    # bptest1
     for module_name in ('base', 'home', 'interface'):
         module = import_module('app.blueprints.{}.routes'.format(module_name))
         app.register_blueprint(module.blueprint)
@@ -44,25 +41,11 @@ def create_celery_app(app=None):
     """
     app = app or create_app()
 
-    CELERY_TASK_LIST = [
-        'app.blueprints.bptest1.tasks',
-        'app.blueprints.bptest2.tasks',
-    ]
-
     celery = Celery(app.import_name,
-                    broker='redis://:TCPYkerxvKQu@redis:6379/0',
-                    include=CELERY_TASK_LIST)
+                    broker='redis://:TCPYkerxvKQu@redis:6379/0'
+                    )
     celery.conf.update(app.config)
-    TaskBase = celery.Task
 
-    class ContextTask(TaskBase):
-        abstract = True
-
-        def __call__(self, *args, **kwargs):
-            with app.app_context():
-                return TaskBase.__call__(self, *args, **kwargs)
-
-    celery.Task = ContextTask
     return celery
 
 

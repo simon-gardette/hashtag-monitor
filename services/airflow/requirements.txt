@@ -1,2 +1,5 @@
 tweepy==3.8.0
 SQLAlchemy
+InstagramApi
+tqdm==4.29.1
+papermill==1.2.1
