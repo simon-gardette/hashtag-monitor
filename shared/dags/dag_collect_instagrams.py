@@ -37,7 +37,8 @@ args = {
 dag = DAG(dag_id='stream_instagram_datas',
           default_args=args,
           schedule_interval='*/5 * * * *',
-          catchup=False
+          catchup=False,
+          max_active_runs=2
 )
 
 def get_keywords():

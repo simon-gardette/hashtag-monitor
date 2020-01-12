@@ -36,7 +36,8 @@ args = {
 dag = DAG(dag_id='raws_parser',
           default_args=args,
           schedule_interval='*/1 * * * *',
-          catchup=False
+          catchup=False,
+          max_active_runs=2
 )
 
 def parser(ds, **kwargs):
