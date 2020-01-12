@@ -14,6 +14,8 @@ services:
         - redis
     ports:
         - 8000:80 # when on production run on port 80
+    networks:
+      - frontend
 
   # Computation
   jupyter:
@@ -31,6 +33,9 @@ services:
       - 8888:8888
     # All entrypoints are stored in respective services
     entrypoint: sh -c 'start-notebook.sh --NotebookApp.token=$$JUPYTER_PASSWORD'
+    networks:
+      - frontend
+
 
   # Visualization
   superset:
@@ -46,6 +51,9 @@ services:
         - ./config/superset_database.env
     ports:
       - 8088:8088
+    networks:
+      - frontend
+
 
   # Misc Storage
   postgres:
@@ -62,6 +70,9 @@ services:
       - ./services/postgres/:/docker-entrypoint-initdb.d/
     ports:
       - 5433:5432
+    networks:
+      - airflow-net
+      - frontend
 
   # Scheduling
   webserver:
@@ -90,6 +101,7 @@ services:
           retries: 3
       networks:
         - airflow-net
+        - frontend
       deploy:
         resources:
           limits:
@@ -166,10 +178,15 @@ services:
       command: redis-server --requirepass TCPYkerxvKQu
       ports:
       - 6079:6079
+      networks:
+        - airflow-net
+        - frontend
 
 volumes:
   postgres_volume:
 
 networks:
+  frontend:
+    driver: bridge
   airflow-net:
     driver: bridge
