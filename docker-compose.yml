@@ -88,6 +88,8 @@ services:
           interval: 30s
           timeout: 30s
           retries: 3
+      networks:
+        - airflow-net
       deploy:
         resources:
           limits:
@@ -107,7 +109,8 @@ services:
       ports:
           - 5555:5555
       command: flower
-
+      networks:
+        - airflow-net
 
   scheduler:
       container_name: "hashtags_airflow_scheduler"
@@ -126,6 +129,8 @@ services:
         - ./shared/plugins/:/usr/local/airflow/plugins
         - ./shared/dags/:/usr/local/airflow/notebooks #for papermill usage
       command: scheduler
+      networks:
+        - airflow-net
       deploy:
         resources:
           limits:
@@ -152,6 +157,9 @@ services:
             memory: 1500m
           reservations:
             memory: 1500m
+      networks:
+        - airflow-net
+
   redis:
       container_name: "hashtags_redis"
       image: 'redis:5.0.7'
@@ -161,3 +169,7 @@ services:
 
 volumes:
   postgres_volume:
+
+networks:
+  airflow-net:
+    driver: airflow-net-driver
