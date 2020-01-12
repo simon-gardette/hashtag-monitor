@@ -178,7 +178,20 @@ class RawsParser():
         instagram_followers_count = None
         instagram_media_url = df['display_url']
 
-        instagram_text  = df['edge_media_to_caption']['edges'][0]['node']['text']
+        try:
+            media_to_caption = df['edge_media_to_caption']['edges'][0]['node']['text']
+        except (KeyError, IndexError) as e:
+            log.error('No caption')
+            media_to_caption = ''
+            pass
+        try:
+            media_accessibility = df['accessibility_caption']
+        except (KeyError, IndexError) as e:
+            log.error('No accessibility caption')
+            media_accessibility = ''
+            pass
+        instagram_text = media_to_caption + ' ' + media_accessibility
+            
         try:
             isReliable, textBytesFound, details = cld2.detect(instagram_text)
             instagram_lang = details[0][1]
