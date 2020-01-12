@@ -88,7 +88,10 @@ services:
           interval: 30s
           timeout: 30s
           retries: 3
-
+      deploy:
+        resources:
+          limits:
+            memory: 1500m
   flower:
       container_name: "hashtags_airflow_flower"
       restart: "always"
@@ -104,6 +107,7 @@ services:
       ports:
           - 5555:5555
       command: flower
+
 
   scheduler:
       container_name: "hashtags_airflow_scheduler"
@@ -122,6 +126,10 @@ services:
         - ./shared/plugins/:/usr/local/airflow/plugins
         - ./shared/dags/:/usr/local/airflow/notebooks #for papermill usage
       command: scheduler
+      deploy:
+        resources:
+          limits:
+            memory: 1500m
 
   worker:
       container_name: "hashtags_airflow_worker"
@@ -138,7 +146,12 @@ services:
         - ./shared/plugins/:/usr/local/airflow/plugins
         - ./shared/notebooks/:/usr/local/airflow/notebooks #for papermill usage
       command: worker
-
+      deploy:
+        resources:
+          limits:
+            memory: 1500m
+          reservations:
+            memory: 1500m
   redis:
       container_name: "hashtags_redis"
       image: 'redis:5.0.7'
