@@ -38,7 +38,7 @@ services:
     restart: "always"
     image: amancevice/superset:latest
     volumes:
-      - ./superset_config.py:/etc/superset/superset_config.py
+      - ./services/superset/superset_config.py:/etc/superset/superset_config.py
     depends_on:
         - postgres
     env_file:
