@@ -11,7 +11,6 @@ from datetime import datetime
 import json
 import requests
 from bs4 import BeautifulSoup
-import IPython.display
 import os
 from sqlalchemy import create_engine, MetaData, Table, exc
 from sqlalchemy.dialects.postgresql import insert
