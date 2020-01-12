@@ -53,7 +53,10 @@ services:
       - 8088:8088
     networks:
       - frontend
-
+    deploy:
+      resources:
+        limits:
+          memory: 500m
 
   # Misc Storage
   postgres:
