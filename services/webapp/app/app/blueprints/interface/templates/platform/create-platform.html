@@ -14,11 +14,10 @@
             <div class="card-header bg-transparent pb-5">
 
               <div class="text-muted text-center mt-2 mb-3">
-
+                <h1>Create Platform</h1>
                 {% if msg %}
                   <span class="text-danger">{{ msg | safe }}</span>
                 {% else %}
-                  Create brand
                 {% endif %}
 
               </div>
@@ -52,7 +51,7 @@
                       <div class="input-group-prepend">
                         <span class="input-group-text"><i class="ni ni-single-02"></i></span>
                       </div>
-                      {{ form.brand_name(placeholder="Brand Name",class="form-control") }}
+                      {{ form.platform_name(placeholder="Platform Name",class="form-control") }}
                     </div>
                   </div>
 

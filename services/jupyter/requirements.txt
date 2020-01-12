@@ -1,7 +1,11 @@
 tweepy==3.8.0
 SQLAlchemy
 psycopg2-binary
-selenium
 bs4
 pandas
-InstagramApi
+textblob
+textblob-fr
+polyglot
+pycld2
+pyicu
+morfessor

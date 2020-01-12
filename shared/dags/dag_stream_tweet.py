@@ -15,8 +15,7 @@ import parser
 import traceback
 import sys
 import sqlalchemy
-from sqlalchemy import create_engine, MetaData, Table
-from sqlalchemy import exc
+from sqlalchemy import create_engine, MetaData, Table, exc
 from sqlalchemy.dialects.postgresql import insert
 
 from sqlalchemy.ext.automap import automap_base
@@ -38,9 +37,11 @@ args = {
     'start_date': seven_days_ago,
 }
 
-dag = DAG(dag_id='stream_twitter_data',
+dag = DAG(dag_id='stream_twitter_datas',
           default_args=args,
-          schedule_interval='*/5 * * * *'
+          schedule_interval='*/5 * * * *',
+          max_active_runs=1,
+          catchup=False
 )
 
 def get_keywords():
@@ -55,7 +56,6 @@ def get_keywords():
     # mapped classes are now created with names by default
     # matching that of the table name.
 
-    raws = Base.classes.raws
     keywords = Base.classes.keywords
 
     session = Session(engine)
@@ -69,11 +69,10 @@ def get_keywords():
 
 
 def stream_tweets(ds, **kwargs):
+    log.info('Task Started')
     keyword_name = kwargs.get("keyword_name")
     keyword_id = kwargs.get("keyword_id")
     brand_id = kwargs.get("brand_id")
-    log.info("something happened")
-    pprint('hello')
     consumer_key = os.environ['TWITTER_API_KEY']
     consumer_secret = os.environ['TWITTER_API_SECRET']
     key = os.environ['TWITTER_ACCESS_TOKEN']
@@ -86,7 +85,6 @@ def stream_tweets(ds, **kwargs):
     tweepy_listener = TwitterListener(keyword_id=keyword_id, brand_id=brand_id)
     tweepy_stream = tweepy.Stream(auth = api.auth, listener=tweepy_listener)
     while True:  # a while loop to achieve what I want to do
-        log.info("something happened")
         results = tweepy_stream.filter(track=[keyword_name])
         time.sleep(1)
     return results
@@ -96,7 +94,7 @@ latest_only = LatestOnlyOperator(task_id='latest_only', dag=dag)
 join = DummyOperator(
     task_id='join',
     trigger_rule='one_success',
-    dag=dag,
+    dag=dag
 )
 
 keywords = get_keywords()
@@ -138,9 +136,11 @@ class TwitterListener(tweepy.StreamListener):
         """
         try:
             # parse as json
+            log.info('collecting')
             raw_data = json.loads(data)
+            api_id = raw_data['id']
             #insert data just collected into MySQL my_database
-            self.populate_table(raw_data)
+            self.populate_table(raw_data, api_id)
 
         except Exception as e:
             logging.error(traceback.format_exc())
@@ -148,46 +148,44 @@ class TwitterListener(tweepy.StreamListener):
 
 
     # todo : create the tables on init
-    def populate_table(self, raw_data):
-        """Populate a given table witht he Twitter collected data
-
-        Args:
-            raw_data (json) : storing raw data for further usage
+    def populate_table(self, raw_data, api_id):
         """
-        engine = create_engine(self.database)
+        Populate a given table witht he Twitter collected data
+        Args:raw_data (json) : storing raw data for further usage
+        """
 
-        # Create connection
-        conn = engine.connect()
-        meta = MetaData()
+        Base = automap_base()
 
-        #get table
-        raw_tweet = Table('raws', meta, autoload=True, autoload_with=engine)
+        # engine, suppose it has two tables 'user' and 'address' set up
+        engine = create_engine(os.environ['SHARED_DB_URI'])
 
-        # Begin transaction
-        trans = conn.begin()
-        type(i)
-        log.info(type(raw_data))
-        ins = raw_tweet.insert().values(brand_id=self.brand_id,
-                                    	keyword_id=self.keyword_id,
-                                    	platform_id=1,
-                                    	api_id='none',
-                                    	raw_data=raw_data,
-                                    	created_at=datetime.now()
-                                        )
+        # reflect the tables
+        Base.prepare(engine, reflect=True)
 
-        #actual content of request
-        conn.execute(ins)
+        # mapped classes are now created with names by default
+        # matching that of the table name.
 
+        Raws = Base.classes.raws
+
+        session = Session(engine)
+
+        add_raws = Raws(brand_id=self.brand_id,
+                      keyword_id=self.keyword_id,
+                      platform_id=1,
+                      api_id=api_id,
+                      raw_data=raw_data,
+                      created_at=datetime.now())
+        session.add(add_raws)
         try:
-            trans.commit()
+            session.commit()
 
         except exc.SQLAlchemyError as e:
-            print(e)
-            log.error(e)
-            trans.rollback()
+          print(e)
+          log.error(e)
+          trans.rollback()
 
         # Close connection
-        conn.close()
+        session.close()
         engine.dispose()
-        print(f"Tweet colleted")
+        log.info(f"Tweet collected")
         return

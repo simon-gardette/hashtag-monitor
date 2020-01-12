@@ -16,6 +16,9 @@ from sqlalchemy import text
 class AddBrand(FlaskForm):
     brand_name     = TextField('Brand Name', validators=[DataRequired()])
 
+class AddPlatform(FlaskForm):
+    platform_name     = TextField('Platform Name', validators=[DataRequired()])
+
 class AddKeyword(FlaskForm):
     def brand_query():
         return Brands.query.order_by(text('brand_name asc')).all()

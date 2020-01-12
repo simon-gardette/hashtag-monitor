@@ -1,11 +1,8 @@
 # -*- encoding: utf-8 -*-
-"""
-License: MIT
-Copyright (c) 2019 - present AppSeed.us
-"""
 
 from flask_login import UserMixin
 from sqlalchemy import Binary, Column, Integer, String
+from sqlalchemy.dialects.postgresql import JSONB
 
 from app.extensions import db, login_manager
 
@@ -64,7 +61,8 @@ class Raws(db.Model):
     platform_id = db.Column(db.Integer, db.ForeignKey('platforms.id'), nullable=False)
     platform = db.relationship('Platforms')
     api_id = db.Column(db.String(255), nullable=False, unique=True)
-    raw_data =  db.Column(db.JSON, nullable=False)
+    raw_data =  db.Column(JSONB, nullable=False)
+    status =  db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.now)
 
     def __repr__(self):
@@ -81,21 +79,24 @@ class Tweets(db.Model):
     raw = db.relationship('Raws')
     brand_id = db.Column(db.Integer, db.ForeignKey('brands.id'), nullable=False)
     brand = db.relationship('Brands')
-    twitter_id = db.Column(db.Integer)
+    twitter_id = db.Column(db.String(255))
     twitter_user_id = db.Column(db.String(255))
     twitter_user_name = db.Column(db.String(255))
     twitter_followers_count = db.Column(db.Integer)
     twitter_media_url = db.Column(db.String(255))
-    twitter_sentiment = db.Column(db.Integer) # 0 negative, 1 neutral, 2 positive
-    twitter_text  = db.Column(db.String(255))
+    twitter_sentiment = db.Column(db.String(255)) # 0 negative, 1 neutral, 2 positive
+    twitter_text  = db.Column(db.Text)
+    twitter_lang  = db.Column(db.String(255))
+    twitter_url  = db.Column(db.String(255))
+    twitter_topics  = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.now)
 
     def __repr__(self):
         return str(self.id)
 
-class Grams(db.Model):
+class Instagrams(db.Model):
 
-    __tablename__ = "grams"
+    __tablename__ = "instagrams"
 
     id = db.Column(db.Integer, primary_key=True)
     keyword_id = db.Column(db.Integer, db.ForeignKey('keywords.id'), nullable=False)
@@ -109,23 +110,12 @@ class Grams(db.Model):
     instagram_user_name = db.Column(db.String(255))
     instagram_followers_count = db.Column(db.Integer)
     instagram_media_url = db.Column(db.String(255))
-    instagram_sentiment = db.Column(db.Integer) # 0 negative, 1 neutral, 2 positive
-    instagram_text  = db.Column(db.String(255))
+    instagram_sentiment = db.Column(db.String(255)) # 0 negative, 1 neutral, 2 positive
+    instagram_text  = db.Column(db.Text)
+    instagram_lang  = db.Column(db.String(255))
+    instagram_url  = db.Column(db.String(255))
+    instagram_topics  = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.now)
 
     def __repr__(self):
         return str(self.id)
-
-# class Person(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     name = db.Column(db.String(50), nullable=False)
-#     addresses = db.relationship('Address', backref='person', lazy=True)
-#     addresses = db.relationship('Address',
-#                                 lazy='select',
-#                                 backref=db.backref('person',
-#                                                    lazy='joined'))
-# class Address(db.Model):
-#     id = db.Column(db.Integer, primary_key=True)
-#     email = db.Column(db.String(120), nullable=False)
-#     person_id = db.Column(db.Integer, db.ForeignKey('person.id'),
-#         nullable=False)

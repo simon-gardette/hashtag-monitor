@@ -1,6 +1,8 @@
 tweepy==3.8.0
 SQLAlchemy
-InstagramApi
 tqdm==4.29.1
 papermill==1.2.1
-beautifulsoup4==4.8.2 
+beautifulsoup4==4.8.2
+textblob
+textblob-fr
+pycld2

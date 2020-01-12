@@ -1,6 +1,11 @@
 #!/usr/bin/env sh
 set -e
 
+until cd /app
+do
+    echo "Retrying copy of files"
+done
+
 if [ -f /app/app/main.py ]; then
     DEFAULT_MODULE_NAME=app.main
 elif [ -f /app/main.py ]; then
@@ -18,5 +23,4 @@ else
     DEFAULT_GUNICORN_CONF=/gunicorn_conf.py
 fi
 export GUNICORN_CONF=${GUNICORN_CONF:-$DEFAULT_GUNICORN_CONF}
-
 exec "$@"

@@ -32,6 +32,19 @@ services:
     # All entrypoints are stored in respective services
     entrypoint: sh -c 'start-notebook.sh --NotebookApp.token=$$JUPYTER_PASSWORD'
 
+  # Visualization
+  superset:
+    container_name: "hashtags_superset"
+    restart: "always"
+    image: amancevice/superset:latest
+    depends_on:
+        - postgres
+    env_file:
+        - ./config/superset_container.env
+        - ./config/superset_database.env
+    ports:
+      - 8088:8088
+
   # Misc Storage
   postgres:
     container_name: "hashtags_postgres"

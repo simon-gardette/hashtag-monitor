@@ -13,7 +13,7 @@ import requests
 from bs4 import BeautifulSoup
 import IPython.display
 import os
-from sqlalchemy import create_engine, MetaData, Table
+from sqlalchemy import create_engine, MetaData, Table, exc
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
@@ -35,9 +35,10 @@ args = {
     'start_date': yesterday,
 }
 
-dag = DAG(dag_id='stream_instagram_data',
+dag = DAG(dag_id='stream_instagram_datas',
           default_args=args,
-          schedule_interval='*/5 * * * *'
+          schedule_interval='*/5 * * * *',
+          catchup=False
 )
 
 def get_keywords():
@@ -52,7 +53,6 @@ def get_keywords():
     # mapped classes are now created with names by default
     # matching that of the table name.
 
-    raws = Base.classes.raws
     keywords = Base.classes.keywords
 
     session = Session(engine)
@@ -75,20 +75,20 @@ def collect_grams(ds, **kwargs):
 
     # Initiate a scraper object and call one of the methods.
     instagram = InstagramScraper(url, keyword_id=keyword_id, brand_id=brand_id)
-    results = instagram.hashtag_posts()    
+    results = instagram.hashtag_posts()
     return results
 
 join = DummyOperator(
     task_id='join',
     trigger_rule='one_success',
-    dag=dag,
+    dag=dag
 )
 
 keywords = get_keywords()
 
 for keyword in keywords:
     run_this = PythonOperator(
-        task_id='stream_tweets_'+ keyword.keyword_name,
+        task_id='stream_instagrams_'+ keyword.keyword_name,
         provide_context=True,
         python_callable=collect_grams,
         execution_timeout=None,
@@ -96,6 +96,7 @@ for keyword in keywords:
                    'keyword_name': keyword.keyword_name,
                    'brand_id': keyword.brand_id},
         dag=dag)
+    run_this >> join
 
 class InstagramScraper:
     def __init__(self, url, user_agents=None, **kwargs):
@@ -139,27 +140,12 @@ class InstagramScraper:
         except Exception as e:
             raise e
 
-    def page_metrics(self):
-        results = {}
-        try:
-            response = self.__request_url()
-            json_data = self.extract_json(response)
-            metrics = json_data['entry_data']['ProfilePage'][0]['graphql']['user']
-        except Exception as e:
-            raise e
-        else:
-            for key, value in metrics.items():
-                if key != 'edge_owner_to_timeline_media':
-                    if value and isinstance(value, dict):
-                        value = value['count']
-                        results[key] = value
-        return results
     def hashtag_posts(self):
         results = []
         try:
             response = self.__request_url()
             json_data = self.extract_json(response)
-            infos = posts['entry_data']['TagPage'][0]['graphql']['hashtag']['edge_hashtag_to_media']['edges']
+            infos = json_data['entry_data']['TagPage'][0]['graphql']['hashtag']['edge_hashtag_to_media']['edges']
         except Exception as e:
             raise e
         else:
@@ -171,56 +157,44 @@ class InstagramScraper:
         return results
 
     def populate_table(self, raw_data, api_id):
-        """Populate a given table witht he Twitter collected data
-
-        Args:
-            raw_data (json) : storing raw data for further usage
         """
-        engine = create_engine(self.database)
+        Populate a given table witht he Twitter collected data
+        Args:raw_data (json) : storing raw data for further usage
+        """
 
-        # Create connection
-        conn = engine.connect()
-        meta = MetaData()
+        Base = automap_base()
 
-        #get table
-        raw_tweet = Table('raws', meta, autoload=True, autoload_with=engine)
+        # engine, suppose it has two tables 'user' and 'address' set up
+        engine = create_engine(os.environ['SHARED_DB_URI'])
 
-        # Begin transaction
-        trans = conn.begin()
+        # reflect the tables
+        Base.prepare(engine, reflect=True)
 
-        ins = insert(raw_tweet).values(brand_id=self.brand_id,
-                                    	keyword_id=self.keyword_id,
-                                    	platform_id=2,
-                                    	api_id=api_id,
-                                    	raw_data=raw_data,
-                                    	created_at=datetime.now()
-                                        )
+        # mapped classes are now created with names by default
+        # matching that of the table name.
 
+        Raws = Base.classes.raws
 
-        do_update_ins = ins.on_conflict_do_update(
-            constraint='api_id',
-            set_=dict(brand_id=self.brand_id,
-                      keyword_id=self.keyword_id,
-                      platform_id=2,
-                      api_id=api_id,
-                      raw_data=raw_data,
-                      created_at=datetime.now())
-        )
+        session = Session(engine)
 
-
-        #actual content of request
-        conn.execute(ins)
-
+        add_raws = Raws(brand_id=self.brand_id,
+                   keyword_id=self.keyword_id,
+                   platform_id=2,
+                   api_id=api_id,
+                   raw_data=raw_data,
+                   created_at=datetime.now())
+        session.add(add_raws)
         try:
-            trans.commit()
+            session.commit()
 
         except exc.SQLAlchemyError as e:
             print(e)
             log.error(e)
-            trans.rollback()
+            session.rollback()
+            pass
 
         # Close connection
-        conn.close()
+        session.close()
         engine.dispose()
-        print(f"Tweet colleted")
+        log.info(f"Instagram collected")
         return

@@ -9,8 +9,12 @@ from importlib import import_module
 from flask_login import LoginManager
 from celery import Celery
 from logging import basicConfig, DEBUG, getLogger, StreamHandler
+from datetime import datetime
 
 socketio = SocketIO()
+
+
+
 
 
 def register_extensions(app):
@@ -53,7 +57,11 @@ def configure_database(app):
 
     @app.before_first_request
     def initialize_database():
+        db.drop_all() # delete on production. should insert a condition here
         db.create_all()
+
+
+
 
     @app.teardown_request
     def shutdown_session(exception=None):

@@ -1,6 +1,8 @@
 #! /usr/bin/env sh
 set -e
 
+
+
 # If there's a prestart.sh script in the /app directory, run it before starting
 PRE_START_PATH=/app/prestart.sh
 echo "Checking for script in $PRE_START_PATH"
