@@ -37,6 +37,20 @@ class Keywords(db.Model):
     def __repr__(self):
         return str(self.id)
 
+class ExcludedKeywords(db.Model):
+
+    __tablename__ = "excluded_keywords"
+
+
+    id = db.Column(db.Integer, primary_key=True)
+    brand_id = db.Column(db.Integer, db.ForeignKey('brands.id'), nullable=False)
+    brand = db.relationship('Brands')
+    keyword_name = db.Column(db.String(255), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.now)
+
+    def __repr__(self):
+        return str(self.id)
+
 class Platforms(db.Model):
 
     __tablename__ = "platforms"
@@ -89,6 +103,7 @@ class Tweets(db.Model):
     twitter_lang  = db.Column(db.String(255))
     twitter_url  = db.Column(db.String(255))
     twitter_topics  = db.Column(db.String(255))
+    tokenizer = db.Column(db.ARRAY)
     created_at = db.Column(db.DateTime, default=datetime.now)
 
     def __repr__(self):
@@ -115,6 +130,7 @@ class Instagrams(db.Model):
     instagram_lang  = db.Column(db.String(255))
     instagram_url  = db.Column(db.String(255))
     instagram_topics  = db.Column(db.String(255))
+    tokenizer = db.Column(db.ARRAY)
     created_at = db.Column(db.DateTime, default=datetime.now)
 
     def __repr__(self):

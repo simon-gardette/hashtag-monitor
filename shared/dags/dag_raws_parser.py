@@ -130,12 +130,15 @@ class RawsParser():
         twitter_url  =  df['id']
         clean_twitter_text = self.clean_text(twitter_text)
 
-        blob_twitter_lang = Detector(clean_twitter_text, quiet=True)
+       try:
+            isReliable, textBytesFound, details = cld2.detect(twitter_text)
+            twitter_lang = details[0][1]
+        except Exception as e:
+            logging.error(traceback.format_exc())
 
         text_tokenized = nltk.RegexpTokenizer(r'\w+').tokenize(clean_twitter_text)
         tokenizer= str(text_tokenized).replace('[', '{').replace(']', '}').replace('\'', '\"')
 
-        twitter_lang = blob_twitter_lang.language.code
         twitter_sentiment = self.detect_sentiment(clean_twitter_text, twitter_lang)
         twitter_topics  = None
 
@@ -187,12 +190,14 @@ class RawsParser():
         instagram_text  = df['edge_media_to_caption']['edges'][0]['node']['text']
         clean_instagram_text = self.clean_text(instagram_text)
 
-        blob_instagram_lang = Detector(clean_instagram_text, quiet=True)
+       try:
+            isReliable, textBytesFound, details = cld2.detect(instagram_lang)
+            instagram_lang = details[0][1]
+        except Exception as e:
+            logging.error(traceback.format_exc())
 
         text_tokenized = nltk.RegexpTokenizer(r'\w+').tokenize(instagram_text)
         tokenizer= str(text_tokenized).replace('[', '{').replace(']', '}').replace('\'', '\"')
-
-        instagram_lang = blob_instagram_lang.language.code
 
         instagram_sentiment = self.detect_sentiment(clean_instagram_text, instagram_lang)
 
