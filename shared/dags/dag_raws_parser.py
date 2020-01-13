@@ -20,6 +20,11 @@ import pandas as pd
 from textblob import TextBlob
 from textblob_fr import PatternTagger, PatternAnalyzer
 import pycld2 as cld2
+import nltk
+from unidecode import unidecode
+import re
+import string
+
 
 log = logging.getLogger(__name__)
 
@@ -89,7 +94,6 @@ class RawsParser():
 
         for platform in platforms:
             log.info(platform)
-            print(platform)
             df_raws = self.get_raws(platform)
             df_raws = df_raws.drop(['created_at'], axis=1)
             df = pd.DataFrame()
@@ -113,12 +117,8 @@ class RawsParser():
         df_flattened["twitter_id"] = pd.to_numeric(df_flattened["twitter_id"])
         df_result = pd.merge(df_raws, df_flattened, on=['twitter_id'])
         df_result = df_result.drop(['raw_data','status','platform_id'], axis=1)
-        print(list(df_result.columns))
-        try:
-            df_result.to_sql('tweets',con=self.engine, if_exists='append', index=False)
-            self.update_raw_status(df_update)
-        except (KeyError, IndexError, exc.SQLAlchemyError) as e:
-            log.error('update error')
+        df_result.to_sql('tweets',con=self.engine, if_exists='append', index=False)
+        self.update_raw_status(df_update)
         return df_result
 
     def parse_json_twitter(self, df):
@@ -128,14 +128,15 @@ class RawsParser():
         twitter_user_name = df['user']['name']
         twitter_followers_count = df['user']['followers_count']
         twitter_url  =  df['id']
+        clean_twitter_text = self.clean_text(twitter_text)
 
-        try:
-            isReliable, textBytesFound, details = cld2.detect(twitter_text)
-            twitter_lang = details[0][1]
-        except Exception as e:
-            logging.error(traceback.format_exc())
+        blob_twitter_lang = Detector(clean_twitter_text, quiet=True)
 
-        twitter_sentiment = self.detect_sentiment(twitter_text, twitter_lang)
+        text_tokenized = nltk.RegexpTokenizer(r'\w+').tokenize(clean_twitter_text)
+        tokenizer= str(text_tokenized).replace('[', '{').replace(']', '}').replace('\'', '\"')
+
+        twitter_lang = blob_twitter_lang.language.code
+        twitter_sentiment = self.detect_sentiment(clean_twitter_text, twitter_lang)
         twitter_topics  = None
 
         created_at = df['created_at']
@@ -148,6 +149,7 @@ class RawsParser():
                           twitter_sentiment,
                           twitter_topics,
                           twitter_url,
+                          tokenizer,
                           created_at],
                          index=['twitter_id',
                                 'twitter_user_id',
@@ -158,6 +160,7 @@ class RawsParser():
                                 'twitter_sentiment',
                                 'twitter_topics',
                                 'twitter_url',
+                                'tokenizer',
                                 'created_at'])
 
     def instagram_data(self, df_raws):
@@ -169,11 +172,9 @@ class RawsParser():
         df_flattened["instagram_id"] = pd.to_numeric(df_flattened["instagram_id"])
         df_result = pd.merge(df_raws, df_flattened, on=['instagram_id'])
         df_result = df_result.drop(['raw_data','status','platform_id'], axis=1)
-        try:
-            df_result.to_sql('instagrams',con=self.engine, if_exists='append', index=False)
-            self.update_raw_status(df_update)
-        except (KeyError, IndexError, exc.SQLAlchemyError) as e:
-            log.error('update error')
+        df_result.to_sql('instagrams',con=self.engine, if_exists='append', index=False)
+        self.update_raw_status(df_update)
+
         return df_result
 
     def parse_json_instagram(self, df):
@@ -182,28 +183,18 @@ class RawsParser():
         instagram_user_name = None
         instagram_followers_count = None
         instagram_media_url = df['display_url']
-        try:
-            media_to_caption = df['edge_media_to_caption']['edges'][0]['node']['text']
-        except (KeyError, IndexError) as e:
-            log.error('No caption')
-            media_to_caption = ''
-            pass
-        try:
-            media_accessibility = df['accessibility_caption']
-        except (KeyError, IndexError) as e:
-            log.error('No accessibility caption')
-            media_accessibility = ''
-            pass
-        instagram_text = media_to_caption + ' ' + media_accessibility
 
-        try:
-            isReliable, textBytesFound, details = cld2.detect(instagram_text)
-            instagram_lang = details[0][1]
-        except Exception as e:
-            logging.error(traceback.format_exc())
+        instagram_text  = df['edge_media_to_caption']['edges'][0]['node']['text']
+        clean_instagram_text = self.clean_text(instagram_text)
 
-        instagram_sentiment = self.detect_sentiment(instagram_text, instagram_lang)
+        blob_instagram_lang = Detector(clean_instagram_text, quiet=True)
 
+        text_tokenized = nltk.RegexpTokenizer(r'\w+').tokenize(instagram_text)
+        tokenizer= str(text_tokenized).replace('[', '{').replace(']', '}').replace('\'', '\"')
+
+        instagram_lang = blob_instagram_lang.language.code
+
+        instagram_sentiment = self.detect_sentiment(clean_instagram_text, instagram_lang)
 
         instagram_topics  = None
         instagram_url  = df['shortcode']
@@ -219,6 +210,7 @@ class RawsParser():
                          instagram_lang ,
                          instagram_topics ,
                          instagram_url ,
+                         tokenizer,
                          created_at],
                          index=['instagram_id',
                                 'instagram_user_id',
@@ -230,22 +222,8 @@ class RawsParser():
                                 'instagram_lang',
                                 'instagram_topics',
                                 'instagram_url',
+                                'tokenizer',
                                 'created_at'])
-    @staticmethod
-    def detect_sentiment(text, lang):
-        if lang == 'fr':
-            sentiment = TextBlob(text, pos_tagger=PatternTagger(), analyzer=PatternAnalyzer()).sentiment
-            polarity = sentiment[0]
-        else:
-            sentiment = TextBlob(text).sentiment
-            polarity = sentiment.polarity
-        if polarity > 0.3:
-            text_sentiment = 'Positive'
-        elif polarity < -0.3:
-            text_sentiment = 'Negative'
-        else:
-            text_sentiment = 'Neutral or Undefined'
-        return text_sentiment
 
     def update_raw_status(self, df_update):
         df_update['status'] = 'Parsed'
@@ -265,3 +243,37 @@ class RawsParser():
             session.close()
             log.error(e)
         pass
+
+    @staticmethod
+    def detect_sentiment(text, lang):
+        if lang == 'fr':
+            sentiment = TextBlob(text, pos_tagger=PatternTagger(), analyzer=PatternAnalyzer()).sentiment
+            polarity = sentiment[0]
+        else:
+            sentiment = TextBlob(text).sentiment
+            polarity = sentiment.polarity
+        if polarity > 0.3:
+            text_sentiment = 'Positive'
+        elif polarity < -0.3:
+            text_sentiment = 'Negative'
+        else:
+            text_sentiment = 'Neutral or Undefined'
+        return text_sentiment
+
+    @staticmethod
+    def clean_text(text):
+        '''
+        Use sumple regex statemnents to clean tweet text by removing links and special characters
+        '''
+        if text:
+            text = unidecode(text)
+            #text = ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)"," ",text).split())
+            text = re.sub(r"http\S+", ' ', text)
+            text = re.sub(r"[\r\n]+", ' ', text)
+            text = text.replace('RT ', ' ').replace('&amp;', 'and').replace('#', ' ')
+            #text = re.sub('[^A-Za-z0-9]+', ' ', text)
+            text = text.translate(str.maketrans('', '', string.punctuation))
+            text = text.lower()
+            return text
+        else:
+            return None

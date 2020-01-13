@@ -6,3 +6,4 @@ beautifulsoup4==4.8.2
 textblob
 textblob-fr
 pycld2
+unidecode
