@@ -130,7 +130,7 @@ class RawsParser():
         twitter_url  =  df['id']
         clean_twitter_text = self.clean_text(twitter_text)
 
-       try:
+        try:
             isReliable, textBytesFound, details = cld2.detect(twitter_text)
             twitter_lang = details[0][1]
         except Exception as e:
@@ -190,7 +190,7 @@ class RawsParser():
         instagram_text  = df['edge_media_to_caption']['edges'][0]['node']['text']
         clean_instagram_text = self.clean_text(instagram_text)
 
-       try:
+        try:
             isReliable, textBytesFound, details = cld2.detect(instagram_lang)
             instagram_lang = details[0][1]
         except Exception as e:
