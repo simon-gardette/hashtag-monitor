@@ -273,6 +273,7 @@ class RawsParser():
         if text:
             text = unidecode(text)
             #text = ' '.join(re.sub("(@[A-Za-z0-9]+)|([^0-9A-Za-z \t])|(\w+:\/\/\S+)"," ",text).split())
+            text = re.sub(r"https\S+", ' ', text)
             text = re.sub(r"http\S+", ' ', text)
             text = re.sub(r"[\r\n]+", ' ', text)
             text = text.replace('RT ', ' ').replace('&amp;', 'and').replace('#', ' ')
