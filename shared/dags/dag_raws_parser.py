@@ -73,7 +73,7 @@ class RawsParser():
     def get_raws(self, platform):
         session = Session(self.engine)
         try:
-            query = session.query(self.Raws).filter_by(platform_id=platform.id,status=None).limit(1000).statement
+            query = session.query(self.Raws).filter_by(platform_id=platform.id,status=None).limit(100).statement
             df = pd.read_sql(query, self.engine)
             session.close()
 
@@ -114,8 +114,11 @@ class RawsParser():
         df_result = pd.merge(df_raws, df_flattened, on=['twitter_id'])
         df_result = df_result.drop(['raw_data','status','platform_id'], axis=1)
         print(list(df_result.columns))
-        df_result.to_sql('tweets',con=self.engine, if_exists='append', index=False)
-        self.update_raw_status(df_update)
+        try:
+            df_result.to_sql('tweets',con=self.engine, if_exists='append', index=False)
+            self.update_raw_status(df_update)
+        except (KeyError, IndexError, exc.SQLAlchemyError) as e:
+            log.error('update error')
         return df_result
 
     def parse_json_twitter(self, df):
@@ -166,9 +169,11 @@ class RawsParser():
         df_flattened["instagram_id"] = pd.to_numeric(df_flattened["instagram_id"])
         df_result = pd.merge(df_raws, df_flattened, on=['instagram_id'])
         df_result = df_result.drop(['raw_data','status','platform_id'], axis=1)
-        df_result.to_sql('instagrams',con=self.engine, if_exists='append', index=False)
-        self.update_raw_status(df_update)
-
+        try:
+            df_result.to_sql('instagrams',con=self.engine, if_exists='append', index=False)
+            self.update_raw_status(df_update)
+        except (KeyError, IndexError, exc.SQLAlchemyError) as e:
+            log.error('update error')
         return df_result
 
     def parse_json_instagram(self, df):
@@ -177,7 +182,6 @@ class RawsParser():
         instagram_user_name = None
         instagram_followers_count = None
         instagram_media_url = df['display_url']
-
         try:
             media_to_caption = df['edge_media_to_caption']['edges'][0]['node']['text']
         except (KeyError, IndexError) as e:
@@ -191,7 +195,7 @@ class RawsParser():
             media_accessibility = ''
             pass
         instagram_text = media_to_caption + ' ' + media_accessibility
-            
+
         try:
             isReliable, textBytesFound, details = cld2.detect(instagram_text)
             instagram_lang = details[0][1]
