@@ -131,7 +131,7 @@ class RawsParser():
         clean_twitter_text = self.clean_text(twitter_text)
 
         try:
-            isReliable, textBytesFound, details = cld2.detect(twitter_text)
+            isReliable, textBytesFound, details = cld2.detect(clean_twitter_text)
             twitter_lang = details[0][1]
         except Exception as e:
             logging.error(traceback.format_exc())
@@ -191,7 +191,7 @@ class RawsParser():
         clean_instagram_text = self.clean_text(instagram_text)
 
         try:
-            isReliable, textBytesFound, details = cld2.detect(instagram_lang)
+            isReliable, textBytesFound, details = cld2.detect(clean_instagram_text)
             instagram_lang = details[0][1]
         except Exception as e:
             logging.error(traceback.format_exc())
